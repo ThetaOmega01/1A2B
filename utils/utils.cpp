@@ -1,5 +1,6 @@
 #include "utils.hpp"
 #include <stdexcept>
+#include <limits>
 
 namespace utils {
 

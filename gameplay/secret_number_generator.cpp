@@ -1,6 +1,7 @@
 #include "secret_number_generator.hpp"
 #include "../utils/utils.hpp"
 #include <algorithm>
+#include <stdexcept>
 #include <array>
 
 SecretNumberGenerator::SecretNumberGenerator() : m_generator{m_randomDevice()} {}

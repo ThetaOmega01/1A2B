@@ -1,0 +1,242 @@
+name: CMake Build
+
+on:
+  push:
+    branches: [ "main" ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        build_type: [Release, Debug]
+        c_compiler: [gcc, clang, cl]
+        include:
+          - os: ubuntu-latest
+            c_compiler: gcc
+            cpp_compiler: g++
+          - os: ubuntu-latest
+            c_compiler: clang
+            cpp_compiler: clang++
+          - os: windows-latest
+            c_compiler: cl
+            cpp_compiler: cl
+          - os: macos-latest
+            c_compiler: clang
+            cpp_compiler: clang++
+        exclude:
+          - os: windows-latest
+            c_compiler: gcc
+          - os: windows-latest
+            c_compiler: clang
+          - os: ubuntu-latest
+            c_compiler: cl
+          - os: macos-latest
+            c_compiler: gcc
+          - os: macos-latest
+            c_compiler: cl
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set reusable strings
+      id: strings
+      shell: bash
+      run: |
+        echo "build-output-dir=${GITHUB_WORKSPACE}/build" >> $GITHUB_ENV
+
+    - name: Install dependencies (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake
+
+    - name: Install dependencies (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        brew install --formula cmake
+
+    - name: Setup MSVC (Windows)
+      if: matrix.os == 'windows-latest'
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Configure CMake
+      run: >
+        cmake -B ${{ env.build-output-dir }}
+        -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
+        -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -S ${{ github.workspace }}
+        ${{ matrix.os == 'windows-latest' && '-DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=OFF' || '' }}
+
+    - name: Build
+      run: cmake --build ${{ env.build-output-dir }} --config ${{ matrix.build_type }} ${{ matrix.os == 'windows-latest' && '--verbose' || '' }}
+
+    - name: Test executable exists
+      shell: bash
+      run: |
+        if [ "${{ matrix.os }}" == "windows-latest" ]; then
+          if [ -f "${{ env.build-output-dir }}/bin/${{ matrix.build_type }}/1a2b.exe" ] || [ -f "${{ env.build-output-dir }}/bin/1a2b.exe" ]; then
+            echo "✅ Executable found on Windows"
+          else
+            echo "❌ Executable not found on Windows"
+            ls -la "${{ env.build-output-dir }}/bin/" || true
+            ls -la "${{ env.build-output-dir }}/bin/${{ matrix.build_type }}/" || true
+            exit 1
+          fi
+        else
+          if [ -f "${{ env.build-output-dir }}/bin/1a2b" ]; then
+            echo "✅ Executable found on ${{ matrix.os }}"
+          else
+            echo "❌ Executable not found on ${{ matrix.os }}"
+            ls -la "${{ env.build-output-dir }}/bin/" || true
+            exit 1
+          fi
+        fi
+
+    - name: Upload build artifacts
+      if: matrix.build_type == 'Release'
+      uses: actions/upload-artifact@v4
+      with:
+        name: 1a2b-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.c_compiler }}
+        path: |
+          ${{ env.build-output-dir }}/bin/
+          ${{ env.build-output-dir }}/lib/
+        retention-days: 7
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+
+    - name: Prepare release files with matrix naming
+      run: |
+        mkdir -p release_files
+        
+        # Define expected Release artifacts (based on matrix)
+        declare -A expected_artifacts=(
+          ["1a2b-ubuntu-latest-Release-gcc"]="1a2b-linux-gcc"
+          ["1a2b-ubuntu-latest-Release-clang"]="1a2b-linux-clang"
+          ["1a2b-macos-latest-Release-clang"]="1a2b-macos-clang"
+          ["1a2b-windows-latest-Release-cl"]="1a2b-windows-msvc.exe"
+        )
+        
+        echo "🔍 Available artifacts:"
+        ls -la artifacts/
+        
+        # Process each expected artifact
+        for artifact_name in "${!expected_artifacts[@]}"; do
+          target_name="${expected_artifacts[$artifact_name]}"
+          
+          if [ -d "artifacts/${artifact_name}" ]; then
+            echo "✅ Processing ${artifact_name} -> ${target_name}"
+            
+            # Find and copy the binary with proper renaming
+            if [ -f "artifacts/${artifact_name}/bin/1a2b.exe" ]; then
+              # Windows: executable in bin/
+              cp "artifacts/${artifact_name}/bin/1a2b.exe" "release_files/${target_name}"
+              echo "   📁 Copied from bin/1a2b.exe"
+            elif [ -f "artifacts/${artifact_name}/bin/Release/1a2b.exe" ]; then
+              # Windows: executable in bin/Release/
+              cp "artifacts/${artifact_name}/bin/Release/1a2b.exe" "release_files/${target_name}"
+              echo "   📁 Copied from bin/Release/1a2b.exe"
+            elif [ -f "artifacts/${artifact_name}/bin/1a2b" ]; then
+              # Unix: executable in bin/
+              cp "artifacts/${artifact_name}/bin/1a2b" "release_files/${target_name}"
+              echo "   📁 Copied from bin/1a2b"
+            else
+              echo "❌ Binary not found in ${artifact_name}"
+              echo "   📁 Contents of ${artifact_name}:"
+              find "artifacts/${artifact_name}" -type f -name "*1a2b*" || echo "   No files matching *1a2b* found"
+              exit 1
+            fi
+            
+            # Verify the file was copied and make executable
+            if [ -f "release_files/${target_name}" ]; then
+              chmod +x "release_files/${target_name}"
+              echo "   ✅ Successfully created: ${target_name}"
+            else
+              echo "   ❌ Failed to create: ${target_name}"
+              exit 1
+            fi
+          else
+            echo "❌ Missing expected artifact: ${artifact_name}"
+            exit 1
+          fi
+        done
+        
+        echo ""
+        echo "🎯 Final release files:"
+        ls -la release_files/
+        
+        # Verify we have exactly 4 release files
+        file_count=$(ls -1 release_files/ | wc -l)
+        if [ "$file_count" -ne 4 ]; then
+          echo "❌ Expected 4 release files, found $file_count"
+          exit 1
+        else
+          echo "✅ All 4 release files prepared successfully!"
+        fi
+
+    - name: Determine if pre-release
+      id: prerelease
+      run: |
+        TAG_NAME=${GITHUB_REF#refs/tags/}
+        echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+        if [[ "$TAG_NAME" =~ -alpha|-beta|-rc|-pre ]]; then
+          echo "is_prerelease=true" >> $GITHUB_OUTPUT
+          echo "This is a pre-release: $TAG_NAME"
+        else
+          echo "is_prerelease=false" >> $GITHUB_OUTPUT
+          echo "This is a full release: $TAG_NAME"
+        fi
+
+    - name: Create GitHub Release
+      id: create_release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.prerelease.outputs.tag_name }}
+        name: Release ${{ steps.prerelease.outputs.tag_name }}
+        body: |
+          ## 1A2B Release ${{ steps.prerelease.outputs.tag_name }}
+
+          ### Downloads
+          Choose the appropriate binary for your platform:
+          
+          - **Linux (GCC)**: `1a2b-linux-gcc`
+          - **Linux (Clang)**: `1a2b-linux-clang`  
+          - **macOS (Clang)**: `1a2b-macos-clang`
+          - **Windows (MSVC)**: `1a2b-windows-msvc.exe`
+
+          ### Usage
+          - Download the appropriate file for your platform
+          - Make executable (Linux/macOS): `chmod +x filename`
+          - Run: `./filename` (or `filename.exe` on Windows)
+
+          ### Platforms Supported
+          - Linux (Ubuntu) - GCC and Clang builds
+          - macOS - Clang build  
+          - Windows - MSVC build
+        draft: false
+        prerelease: ${{ steps.prerelease.outputs.is_prerelease }}
+        files: release_files/*
