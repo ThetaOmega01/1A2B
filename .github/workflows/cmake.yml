@@ -129,74 +129,62 @@ jobs:
       with:
         path: artifacts
 
-    - name: Prepare release files with matrix naming
+    - name: Compress and prepare release artifacts
       run: |
         mkdir -p release_files
         
-        # Define expected Release artifacts (based on matrix)
-        declare -A expected_artifacts=(
-          ["1a2b-ubuntu-latest-Release-gcc"]="1a2b-linux-gcc"
-          ["1a2b-ubuntu-latest-Release-clang"]="1a2b-linux-clang"
-          ["1a2b-macos-latest-Release-clang"]="1a2b-macos-clang"
-          ["1a2b-windows-latest-Release-cl"]="1a2b-windows-msvc.exe"
-        )
+        # Get version from tag
+        TAG_NAME=${GITHUB_REF#refs/tags/}
+        VERSION=${TAG_NAME#v}  # Remove 'v' prefix if present
         
         echo "🔍 Available artifacts:"
         ls -la artifacts/
         
-        # Process each expected artifact
-        for artifact_name in "${!expected_artifacts[@]}"; do
-          target_name="${expected_artifacts[$artifact_name]}"
+        # Compress each Release artifact directory as-is
+        cd artifacts
+        for artifact_dir in */; do
+          # Remove trailing slash
+          artifact_name=${artifact_dir%/}
           
-          if [ -d "artifacts/${artifact_name}" ]; then
-            echo "✅ Processing ${artifact_name} -> ${target_name}"
+          # Only process Release artifacts (skip Debug builds)
+          if [[ "$artifact_name" == *"-Release-"* ]]; then
+            echo "✅ Compressing ${artifact_name}"
             
-            # Find and copy the binary with proper renaming
-            if [ -f "artifacts/${artifact_name}/bin/1a2b.exe" ]; then
-              # Windows: executable in bin/
-              cp "artifacts/${artifact_name}/bin/1a2b.exe" "release_files/${target_name}"
-              echo "   📁 Copied from bin/1a2b.exe"
-            elif [ -f "artifacts/${artifact_name}/bin/Release/1a2b.exe" ]; then
-              # Windows: executable in bin/Release/
-              cp "artifacts/${artifact_name}/bin/Release/1a2b.exe" "release_files/${target_name}"
-              echo "   📁 Copied from bin/Release/1a2b.exe"
-            elif [ -f "artifacts/${artifact_name}/bin/1a2b" ]; then
-              # Unix: executable in bin/
-              cp "artifacts/${artifact_name}/bin/1a2b" "release_files/${target_name}"
-              echo "   📁 Copied from bin/1a2b"
-            else
-              echo "❌ Binary not found in ${artifact_name}"
-              echo "   📁 Contents of ${artifact_name}:"
-              find "artifacts/${artifact_name}" -type f -name "*1a2b*" || echo "   No files matching *1a2b* found"
-              exit 1
-            fi
+            # Create tar.gz of the entire artifact directory
+            tar -czf "../release_files/${artifact_name}-${VERSION}.tar.gz" "${artifact_name}/"
             
-            # Verify the file was copied and make executable
-            if [ -f "release_files/${target_name}" ]; then
-              chmod +x "release_files/${target_name}"
-              echo "   ✅ Successfully created: ${target_name}"
-            else
-              echo "   ❌ Failed to create: ${target_name}"
-              exit 1
+            echo "   📦 Created: ${artifact_name}-${VERSION}.tar.gz"
+            
+            # Show contents of the compressed file
+            echo "   📁 Archive contents:"
+            tar -tzf "../release_files/${artifact_name}-${VERSION}.tar.gz" | head -10
+            if [ $(tar -tzf "../release_files/${artifact_name}-${VERSION}.tar.gz" | wc -l) -gt 10 ]; then
+              echo "   ... and more files"
             fi
           else
-            echo "❌ Missing expected artifact: ${artifact_name}"
-            exit 1
+            echo "⏭️  Skipping non-Release artifact: ${artifact_name}"
           fi
         done
         
+        cd ..
+        
         echo ""
-        echo "🎯 Final release files:"
+        echo "🎯 Final compressed release artifacts:"
         ls -la release_files/
         
-        # Verify we have exactly 4 release files
-        file_count=$(ls -1 release_files/ | wc -l)
-        if [ "$file_count" -ne 4 ]; then
-          echo "❌ Expected 4 release files, found $file_count"
+        # Verify we have the expected number of Release artifacts
+        file_count=$(ls -1 release_files/*.tar.gz 2>/dev/null | wc -l)
+        if [ "$file_count" -eq 0 ]; then
+          echo "❌ No compressed artifacts created"
           exit 1
         else
-          echo "✅ All 4 release files prepared successfully!"
+          echo "✅ Created $file_count compressed release artifacts!"
         fi
+        
+        # Show sizes
+        echo ""
+        echo "📊 Archive sizes:"
+        du -h release_files/*.tar.gz
 
     - name: Determine if pre-release
       id: prerelease
@@ -219,24 +207,6 @@ jobs:
         name: Release ${{ steps.prerelease.outputs.tag_name }}
         body: |
           ## 1A2B Release ${{ steps.prerelease.outputs.tag_name }}
-
-          ### Downloads
-          Choose the appropriate binary for your platform:
-          
-          - **Linux (GCC)**: `1a2b-linux-gcc`
-          - **Linux (Clang)**: `1a2b-linux-clang`  
-          - **macOS (Clang)**: `1a2b-macos-clang`
-          - **Windows (MSVC)**: `1a2b-windows-msvc.exe`
-
-          ### Usage
-          - Download the appropriate file for your platform
-          - Make executable (Linux/macOS): `chmod +x filename`
-          - Run: `./filename` (or `filename.exe` on Windows)
-
-          ### Platforms Supported
-          - Linux (Ubuntu) - GCC and Clang builds
-          - macOS - Clang build  
-          - Windows - MSVC build
         draft: false
         prerelease: ${{ steps.prerelease.outputs.is_prerelease }}
-        files: release_files/*
+        files: release_files/*.tar.gz
