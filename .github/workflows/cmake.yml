@@ -78,9 +78,49 @@ jobs:
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
         -S ${{ github.workspace }}
         ${{ matrix.os == 'windows-latest' && '-DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=OFF' || '' }}
+        ${{ matrix.os == 'macos-latest' && '-DCMAKE_INSTALL_RPATH=@executable_path/../lib' || '' }}
+        ${{ matrix.os == 'ubuntu-latest' && '-DCMAKE_INSTALL_RPATH=$ORIGIN/../lib' || '' }}
 
     - name: Build
       run: cmake --build ${{ env.build-output-dir }} --config ${{ matrix.build_type }} ${{ matrix.os == 'windows-latest' && '--verbose' || '' }}
+
+    - name: Fix RPATH on macOS (if needed)
+      if: matrix.os == 'macos-latest' && matrix.build_type == 'Release'
+      shell: bash
+      run: |
+        # Check if lib1a2b.dylib exists and fix its install name
+        if [ -f "${{ env.build-output-dir }}/lib/lib1a2b.dylib" ]; then
+          echo "Fixing rpath for lib1a2b.dylib"
+          install_name_tool -id "@rpath/lib1a2b.dylib" "${{ env.build-output-dir }}/lib/lib1a2b.dylib"
+        fi
+        
+        # Fix rpath in the executable
+        if [ -f "${{ env.build-output-dir }}/bin/1a2b" ]; then
+          echo "Adding rpath to 1a2b executable"
+          install_name_tool -add_rpath "@executable_path/../lib" "${{ env.build-output-dir }}/bin/1a2b" 2>/dev/null || true
+        fi
+        
+        # Verify the changes
+        echo "=== Checking executable dependencies ==="
+        otool -L "${{ env.build-output-dir }}/bin/1a2b" || true
+        echo "=== Checking executable rpaths ==="
+        otool -l "${{ env.build-output-dir }}/bin/1a2b" | grep -A2 LC_RPATH || true
+
+    - name: Fix RPATH on Linux (if needed)  
+      if: matrix.os == 'ubuntu-latest' && matrix.build_type == 'Release'
+      shell: bash
+      run: |
+        # Fix rpath in the executable for Linux
+        if [ -f "${{ env.build-output-dir }}/bin/1a2b" ]; then
+          echo "Setting rpath for Linux executable"
+          patchelf --set-rpath '$ORIGIN/../lib' "${{ env.build-output-dir }}/bin/1a2b" 2>/dev/null || true
+        fi
+        
+        # Verify the changes  
+        echo "=== Checking executable dependencies ==="
+        ldd "${{ env.build-output-dir }}/bin/1a2b" || true
+        echo "=== Checking executable rpath ==="
+        readelf -d "${{ env.build-output-dir }}/bin/1a2b" | grep RPATH || true
 
     - name: Test executable exists
       shell: bash
@@ -154,13 +194,6 @@ jobs:
             tar -czf "../release_files/${artifact_name}-${VERSION}.tar.gz" "${artifact_name}/"
             
             echo "   📦 Created: ${artifact_name}-${VERSION}.tar.gz"
-            
-            # Show contents of the compressed file
-            echo "   📁 Archive contents:"
-            tar -tzf "../release_files/${artifact_name}-${VERSION}.tar.gz" | head -10
-            if [ $(tar -tzf "../release_files/${artifact_name}-${VERSION}.tar.gz" | wc -l) -gt 10 ]; then
-              echo "   ... and more files"
-            fi
           else
             echo "⏭️  Skipping non-Release artifact: ${artifact_name}"
           fi
@@ -180,11 +213,6 @@ jobs:
         else
           echo "✅ Created $file_count compressed release artifacts!"
         fi
-        
-        # Show sizes
-        echo ""
-        echo "📊 Archive sizes:"
-        du -h release_files/*.tar.gz
 
     - name: Determine if pre-release
       id: prerelease
