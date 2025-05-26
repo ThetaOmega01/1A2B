@@ -1,2 +1,6 @@
 build
 .DS_Store
+.cache
+.clangd
+.idea
+cmake-build-debug
