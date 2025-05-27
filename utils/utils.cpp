@@ -1,10 +1,10 @@
 #include "utils.hpp"
-#include <stdexcept>
 #include <limits>
+#include <stdexcept>
 
 namespace utils {
 
-int32_t intPow(const int32_t base, int32_t exp) {
+constexpr int32_t intPow(const int32_t base, int32_t exp) {
   if (exp < 0) {
     return 0;
   }
@@ -19,8 +19,8 @@ int32_t intPow(const int32_t base, int32_t exp) {
         "Exponent too large for safe integer power calculation");
   }
 
-  int64_t result = 1;
-  int64_t base64 = base;
+  int64_t result{1};
+  int64_t base64{base};
 
   while (exp > 0) {
     if (exp & 1) {
@@ -54,7 +54,8 @@ std::array<int32_t, numberSize> getDigits(int32_t number) {
   return digits;
 }
 
-std::optional<std::array<int32_t, numberSize>> isValidGuess(const int32_t guess) {
+std::optional<std::array<int32_t, numberSize>>
+isValidGuess(const int32_t guess) {
   // Basic range check
   if (guess < minValidNumber || guess > maxValidNumber) {
     return std::nullopt;
