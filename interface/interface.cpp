@@ -1,4 +1,5 @@
 #include "interface.hpp"
+#include "../utils/utils.hpp"
 #include <stdexcept>
 
 GameSessionBase::GameSessionBase(const int32_t secret,
@@ -8,7 +9,7 @@ GameSessionBase::GameSessionBase(const int32_t secret,
   if (maxAttempts <= 0) {
     throw std::invalid_argument("Maximum attempts must be positive");
   }
-  if (secret < 1000 || secret > 9876) {
+  if (secret < utils::minValidNumber || secret > utils::maxValidNumber) {
     throw std::invalid_argument(
         "Secret number must be a valid 4-digit number with unique digits");
   }
