@@ -58,6 +58,7 @@ getValidNumberRange(const int32_t size) {
 // Constants for valid number range
 inline constexpr int32_t minValidNumber{getMinValidNumber(numberSize)};
 inline constexpr int32_t maxValidNumber{getMaxValidNumber(numberSize)};
+inline constexpr int32_t validNumberRange{maxValidNumber - minValidNumber + 1};
 
 /**
  * @brief Converts a number into an array of its digits
@@ -79,5 +80,14 @@ void getDigits(int32_t number, std::array<int32_t, numberSize>& digits);
  * @return Optional array of digits if valid, nullopt if invalid
  */
 std::optional<std::array<int32_t, numberSize>> isValidGuess(int32_t guess);
+
+/**
+ * @brief Calculate A and B counts for a guess against a target number
+ * @param guess The guess number
+ * @param target The target number
+ * @return Array containing [A_count, B_count] where A is correct digits in
+ *         correct positions and B is correct digits in wrong positions
+ */
+std::array<int32_t, 2> calculateAB(int32_t guess, int32_t target);
 
 } // namespace utils

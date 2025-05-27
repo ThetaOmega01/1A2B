@@ -1,4 +1,5 @@
 #include "utils.hpp"
+#include <algorithm>
 #include <limits>
 #include <stdexcept>
 
@@ -78,6 +79,34 @@ isValidGuess(const int32_t guess) {
   }
 
   return guessDigits;
+}
+
+std::array<int32_t, 2> calculateAB(const int32_t guess, const int32_t target) {
+  const std::array<int32_t, numberSize> guessDigits{getDigits(guess)};
+  const std::array<int32_t, numberSize> targetDigits{getDigits(target)};
+
+  int32_t As{0};
+  int32_t Bs{0};
+
+  std::array<int32_t, 10> targetCount{};
+  std::array<int32_t, 10> guessCount{};
+
+  // Count A's (correct position) and build frequency counts for B's
+  for (int32_t digitIndex{0}; digitIndex < numberSize; ++digitIndex) {
+    if (targetDigits.at(digitIndex) == guessDigits.at(digitIndex)) {
+      ++As;
+    } else {
+      ++targetCount.at(targetDigits.at(digitIndex));
+      ++guessCount.at(guessDigits.at(digitIndex));
+    }
+  }
+
+  // Count B's (correct digit, wrong position)
+  for (int32_t countIndex{0}; countIndex < 10; ++countIndex) {
+    Bs += std::min(targetCount.at(countIndex), guessCount.at(countIndex));
+  }
+
+  return {As, Bs};
 }
 
 } // namespace utils
