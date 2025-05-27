@@ -4,9 +4,9 @@
 
 void UserInterface::displayWelcome() {
   const std::string message{
-      std::format("=================================\n"
+      std::format("═════════════════════════════════\n"
                   "    Welcome to 1A2B Game!\n"
-                  "=================================\n\n"
+                  "═════════════════════════════════\n\n"
                   "Rules:\n"
                   "- Guess a 4-digit number with unique digits\n"
                   "- The first digit cannot be 0\n"
