@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdint>
+#include <optional>
 
 /**
  * @interface IGameSession
@@ -117,4 +118,32 @@ private:
                            ///< session
   int32_t m_attemptsLeft{}; ///< Number of attempts remaining for the player
   bool m_gameWon{false};    ///< Flag indicating if the game has been won
+};
+
+class ISolver {
+public:
+  /**
+   * @brief Virtual destructor for proper cleanup of derived classes
+   */
+  virtual ~ISolver() = default;
+
+  /**
+   * @brief Generate the next guess for the secret number
+   * @return The next guess, or std::nullopt if no valid guess exists
+   */
+  virtual std::optional<int32_t> nextGuess() = 0;
+
+  /**
+   * @brief Update solver state with feedback from the previous guess
+   * @param guess The number that was guessed
+   * @param aCount Number of correct digits in correct positions
+   * @param bCount Number of correct digits in wrong positions
+   */
+  virtual void updateGuess(int32_t guess, int32_t aCount, int32_t bCount) = 0;
+
+  /**
+   * @brief Check if the secret number has been solved
+   * @return true if solved, false otherwise
+   */
+  [[nodiscard]] virtual bool isSolved() const = 0;
 };
