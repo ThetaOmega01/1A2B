@@ -1,6 +1,6 @@
 /**
  * @file secret_number_generator.hpp
- * @brief Handles generation random numbers
+ * @brief Handles random numbers generation
  */
 
 #pragma once

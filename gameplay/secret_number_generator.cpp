@@ -1,10 +1,11 @@
 #include "secret_number_generator.hpp"
 #include "../utils/utils.hpp"
 #include <algorithm>
-#include <stdexcept>
 #include <array>
+#include <stdexcept>
 
-SecretNumberGenerator::SecretNumberGenerator() : m_generator{m_randomDevice()} {}
+SecretNumberGenerator::SecretNumberGenerator()
+    : m_generator{m_randomDevice()} {}
 
 SecretNumberGenerator& SecretNumberGenerator::getInstance() {
   static SecretNumberGenerator instance{};

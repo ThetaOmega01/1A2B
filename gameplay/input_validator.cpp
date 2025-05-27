@@ -98,5 +98,3 @@ bool InputValidator::handleStreamFailure() {
   }
   return false;
 }
-
-

@@ -2,9 +2,6 @@
 
 /**
  * @brief Manages the overall game flow and orchestrates game components
- *
- * Responsibilities to specialized classes: SecretNumberGenerator,
- * UserInterface, DifficultySelector, and InputValidator.
  */
 class GameManager {
 public:
