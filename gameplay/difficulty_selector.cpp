@@ -1,7 +1,7 @@
 #include "difficulty_selector.hpp"
 #include "input_validator.hpp"
-#include <iostream>
 #include <format>
+#include <iostream>
 
 int32_t DifficultySelector::getMaxAttempts() {
   displayDifficultyOptions();
@@ -46,12 +46,12 @@ bool DifficultySelector::playAgain() {
 
 void DifficultySelector::displayDifficultyOptions() {
   const std::string message{std::format("Choose difficulty level:\n"
-                                    "1. Easy (15 attempts)\n"
-                                    "2. Medium (10 attempts)\n"
-                                    "3. Hard (7 attempts)\n"
-                                    "4. Expert (5 attempts)\n"
-                                    "5. Custom\n"
-                                    "Enter your choice (1-5): ")};
+                                        "1. Easy (15 attempts)\n"
+                                        "2. Medium (10 attempts)\n"
+                                        "3. Hard (7 attempts)\n"
+                                        "4. Expert (5 attempts)\n"
+                                        "5. Custom\n"
+                                        "Enter your choice (1-5): ")};
   std::cout << message;
 }
 

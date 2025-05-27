@@ -6,7 +6,6 @@
 #pragma once
 
 #include "../interface/interface.hpp"
-#include "../utils/utils.hpp"
 #include <array>
 
 /**
@@ -26,8 +25,7 @@ public:
   /**
    * @brief Processes a player's guess and returns the score
    * @param guess The player's guess as an integer
-   * @return Array containing [A_count, B_count] where A is correct digits in
-   *         correct positions and B is correct digits in wrong positions
+   * @return Array containing [aCount, bCount], number of A's and B's.
    */
   std::array<int32_t, 2> makeGuess(int32_t guess) override;
 
@@ -35,8 +33,4 @@ public:
    * @brief Starts the game loop
    */
   void start() override;
-
-private:
-  std::array<int32_t, utils::numberSize>
-      m_secretDigits{}; ///< Secret number digits
 };
