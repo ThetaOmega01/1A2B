@@ -6,6 +6,7 @@
 #include "guess_history_manager.hpp"
 #include "../utils/utils.hpp"
 #include <algorithm>
+#include <cstdint>
 #include <ranges>
 
 void GuessHistoryManager::addGuess(int32_t guess, int32_t aCount,
