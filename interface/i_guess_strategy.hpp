@@ -41,7 +41,7 @@ public:
    * @brief Get the name of this strategy
    * @return A string identifying this strategy
    */
-  [[nodiscard]] virtual std::string getStrategyName() const = 0;
+  [[nodiscard]] virtual std::string_view getStrategyName() const = 0;
 
 protected:
   /**
