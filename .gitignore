@@ -4,3 +4,4 @@ build
 .clangd
 .idea
 cmake-build-debug
+tests
