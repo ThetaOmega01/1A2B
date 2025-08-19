@@ -19,15 +19,6 @@ int32_t FrequencyStrategy::selectBestGuess(
     return possibleNumbers.front();
   }
 
-  std::array<std::array<int32_t, 10>, utils::numberSize> digitFreq{};
-  for (const auto number : possibleNumbers) {
-    auto digits = utils::getDigits(number);
-    for (size_t pos{0}; pos < utils::numberSize; ++pos) {
-      ++digitFreq.at(pos).at(digits.at(pos));
-    }
-  }
-
-  const double invCount{1.0 / static_cast<double>(possibleNumbers.size())};
   int32_t bestGuess{possibleNumbers.front()};
   double bestScore{-1.0};
 
@@ -38,13 +29,8 @@ int32_t FrequencyStrategy::selectBestGuess(
       continue;
     }
 
-    auto guessDigits{utils::getDigits(candidate)};
-    double score{0.0};
-    for (size_t pos{0}; pos < utils::numberSize; ++pos) {
-      score += digitFreq.at(pos).at(guessDigits.at(pos)) * invCount;
-    }
-
-    if (score > bestScore) {
+    if (const double score{calculateFrequency(candidate, possibleNumbers)};
+        score > bestScore) {
       bestScore = score;
       bestGuess = candidate;
     }
@@ -55,4 +41,29 @@ int32_t FrequencyStrategy::selectBestGuess(
 
 std::string_view FrequencyStrategy::getStrategyName() const noexcept {
   return {"Frequency-based"};
+}
+
+double FrequencyStrategy::calculateFrequency(
+    int32_t guess,
+    const std::vector<int32_t>& possibleNumbers) const noexcept {
+  if (possibleNumbers.empty()) {
+    return 0.0;
+  }
+
+  std::array<std::array<int32_t, 10>, utils::numberSize> digitFreq{};
+  for (const auto number : possibleNumbers) {
+    auto digits = utils::getDigits(number);
+    for (size_t pos{0}; pos < utils::numberSize; ++pos) {
+      ++digitFreq.at(pos).at(digits.at(pos));
+    }
+  }
+
+  const double invCount{1.0 / static_cast<double>(possibleNumbers.size())};
+  auto guessDigits{utils::getDigits(guess)};
+  double score{0.0};
+  for (size_t pos{0}; pos < utils::numberSize; ++pos) {
+    score += digitFreq.at(pos).at(guessDigits.at(pos)) * invCount;
+  }
+
+  return score;
 }

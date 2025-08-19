@@ -47,10 +47,6 @@ public:
    */
   [[nodiscard]] std::string_view getStrategyName() const override;
 
-private:
-  CacheManager<double>&
-      m_cache; ///< Reference to cache manager for entropy calculations
-
   /**
    * @brief Calculate entropy (information gain) for a potential guess
    * @param guess The potential guess to evaluate
@@ -60,4 +56,8 @@ private:
   [[nodiscard]] double
   calculateEntropy(int32_t guess,
                    const std::vector<int32_t>& possibleNumbers) const;
+
+private:
+  CacheManager<double>&
+      m_cache; ///< Reference to cache manager for entropy calculations
 };

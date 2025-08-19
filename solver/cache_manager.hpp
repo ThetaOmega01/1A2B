@@ -25,7 +25,7 @@ public:
    * @param key The key to associate with the value
    * @param value The value to cache
    */
-  void cache(int32_t key, const T& value) { m_cache.at(key) = value; }
+  void cache(int32_t key, const T& value) { m_cache[key] = value; }
 
   /**
    * @brief Retrieve a cached value by key

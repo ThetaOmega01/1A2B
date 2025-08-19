@@ -44,4 +44,14 @@ public:
    * @return String identifier for this strategy
    */
   [[nodiscard]] std::string_view getStrategyName() const noexcept override;
+
+  /**
+   * @brief Calculate frequency score for a potential guess
+   * @param guess The potential guess to evaluate
+   * @param possibleNumbers Vector of numbers still considered possible
+   * @return Frequency score (higher values indicate better coverage of frequent digits)
+   */
+  [[nodiscard]] double
+  calculateFrequency(int32_t guess,
+                     const std::vector<int32_t>& possibleNumbers) const noexcept;
 };

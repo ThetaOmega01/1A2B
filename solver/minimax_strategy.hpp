@@ -46,10 +46,6 @@ public:
    */
   [[nodiscard]] std::string_view getStrategyName() const override;
 
-private:
-  CacheManager<size_t>&
-      m_cache; ///< Reference to cache manager for minimax calculations
-
   /**
    * @brief Calculate minimax score for a potential guess
    * @param guess The potential guess to evaluate
@@ -60,4 +56,8 @@ private:
   [[nodiscard]] size_t
   calculateMinimax(int32_t guess,
                    const std::vector<int32_t>& possibleNumbers) const;
+
+private:
+  CacheManager<size_t>&
+      m_cache; ///< Reference to cache manager for minimax calculations
 };
