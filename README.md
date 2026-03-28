@@ -13,15 +13,9 @@ cd build
 
 cmake ..
 
-cmake --build . --config Release  
+cmake --build . --config Release
 ```
 
 ## Usage
 
 The game should be self-explanatory.
-
-## TODO
-
-- Implement solver
-
-That's quite it for now.
